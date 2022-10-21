@@ -1,0 +1,131 @@
+/*let isMount = true;
+let workInProgressHook = null;
+
+let fiber = {
+  stateNode: App,
+  memoizedState: null,
+};
+
+function schedule() {
+  workInProgressHook = fiber.memoizedState;
+  fiber.stateNode();
+  isMount = false;
+}
+
+function useState(initState) {
+  let hook = null;
+  if (isMount) {
+    hook = {
+      memoizedState: initState,
+      next: null,
+      queue: {
+        pending: null,
+      },
+    };
+    if (fiber.memoizedState === null) {
+      fiber.memoizedState = hook;
+    } else {
+      workInProgressHook.next = hook;
+    }
+    workInProgressHook = hook;
+  } else {
+    hook = workInProgressHook;
+    workInProgressHook = workInProgressHook.next;
+  }
+
+  let baseState = hook.memoizedState;
+  if (hook.queue.pending) {
+    let firstUpdate = hook.queue.pending.next;
+    do {
+      baseState = firstUpdate.action(baseState);
+      firstUpdate = firstUpdate.next;
+    } while (firstUpdate !== hook.queue.pending.next);
+
+    hook.queue.pending = null;
+  }
+
+  hook.memoizedState = baseState;
+
+  return [baseState, dispatchAction.bind(null, hook.queue)];
+}
+
+function dispatchAction(queue, action) {
+  const update = {
+    action,
+    next: null,
+  };
+
+  if (queue.pending === null) {
+    update.next = update;
+  } else {
+    update.next = queue.pending.next;
+    queue.pending.next = update;
+  }
+  queue.pending = update;
+
+  schedule();
+}
+
+function App() {
+  const [count, setCount] = useState(0);
+
+  console.log("render -> ", count);
+
+  return {
+    onClick: () => {
+      setCount((count) => count + 1);
+    },
+  };
+}*/
+
+let isMount = true;
+let currentHookIndex = -1;
+const hooks = [];
+
+function dispatchAction(queue, update) {
+  queue.push(update);
+
+  currentHookIndex = 0;
+  App();
+  isMount = false;
+}
+
+function useState(initState) {
+  let hook = null;
+  if (isMount) {
+    hook = {
+      // 数据
+      memoizedState: initState,
+      // update 队列
+      queue: [],
+    };
+    hooks.push(hook);
+    currentHookIndex++;
+  } else {
+    hook = hooks[currentHookIndex++];
+  }
+
+  let baseState = hook.memoizedState;
+  if (hook.queue.length > 0) {
+    hook.queue.forEach((update) => {
+      baseState = update(baseState);
+    });
+    hook.memoizedState = baseState;
+    hook.queue.splice(0, 9999);
+  }
+  return [baseState, dispatchAction.bind(null, hook.queue)];
+}
+
+function App() {
+  const [count, setCount] = useState(0);
+
+  console.log("render -> ", count, count1);
+
+  isMount = false;
+
+  return {
+    onClick: () => {
+      setCount((count) => count + 1);
+    },
+  };
+}
